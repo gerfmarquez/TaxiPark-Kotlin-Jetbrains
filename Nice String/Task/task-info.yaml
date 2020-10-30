@@ -3,12 +3,12 @@ files:
 - name: src/nicestring/NiceString.kt
   visible: true
   placeholders:
-  - offset: 52
-    length: 286
+  - offset: 53
+    length: 679
     placeholder_text: TODO()
     initial_state:
-      length: 6
-      offset: 55
+      length: 286
+      offset: 52
     initialized_from_dependency: false
     selected: true
     status: Unchecked
