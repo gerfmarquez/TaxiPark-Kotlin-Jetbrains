@@ -10,7 +10,7 @@ fun TaxiPark.findFakeDrivers(): Set<Driver> =
  * Task #2. Find all the clients who completed at least the given number of trips.
  */
 fun TaxiPark.findFaithfulPassengers(minTrips: Int): Set<Passenger> =
-        allPassengers.filter { passenger -> trips.count { trip -> trip.passengers.any { it == passenger }} >= minTrips}.toSet()
+        allPassengers.filter { passenger -> trips.count { trip -> passenger in trip.passengers} >= minTrips}.toSet()
 
 /*
  * Task #3. Find all the passengers, who were taken by a given driver more than once.
@@ -32,24 +32,14 @@ fun TaxiPark.findSmartPassengers(): Set<Passenger> =
  * Return any period if many are the most frequent, return `null` if there're no trips.
  */
 fun TaxiPark.findTheMostFrequentTripDurationPeriod(): IntRange? {
-    return  if(trips.isNotEmpty()) {
-        (trips.minBy { it.duration } to trips.maxBy { it.duration })
-                .let {
-                    //IntRange(it.first?.duration?:0, )
-                    val duration = it.second?.duration?:1
-                    val max = duration - (duration % 10) + 10
-                    var ranges = mutableListOf<IntRange>()
-                    for(i in 0 until  max step 10) {
-                        ranges.add(IntRange(i,i+9))
-                        println(i+9)
-                    }
-                    ranges
-                }.let {
-                    it.maxBy { range ->
-                        trips.count { trip -> trip.duration in range }
-                    }
-                }
-    } else {null}
+    return trips
+        .groupBy {
+            val start = it.duration / 10 * 10
+            val end = start + 9
+            start..end
+        }
+        .maxBy { (_,group) -> group.size }
+        ?.key
 }
 
 /*
@@ -58,13 +48,18 @@ fun TaxiPark.findTheMostFrequentTripDurationPeriod(): IntRange? {
  */
 fun TaxiPark.checkParetoPrinciple(): Boolean {
 
-    if(trips.isEmpty()) return false
+    if (trips.isEmpty()) return false
 
-    var eightyPercentIncome = (trips.sumByDouble { it.cost } * .80)
+    val totalIncome = trips.sumByDouble (Trip::cost)
+    val sortedDriversIncome: List<Double> = trips
+            .groupBy (Trip::driver)
+            .map { (_, tripsByDriver) -> tripsByDriver.sumByDouble(Trip::cost) }
+            .sortedDescending()
 
-    var driversIncomes = trips.associate { trip -> trip.driver to trips.filter { it.driver == trip.driver }.sumByDouble { it.cost }}.toList().sortedByDescending { it.second }
+    val numberOfTopDrivers = (0.2 * allDrivers.size).toInt()
+    val incomeByTopDrivers = sortedDriversIncome
+            .take(numberOfTopDrivers)
+            .sum()
 
-    val moreThanEightyPercentIncome : Boolean = driversIncomes.slice( 0 until (allDrivers.size * .20).toInt()).sumByDouble { it.second } >= eightyPercentIncome
-
-    return moreThanEightyPercentIncome
+    return incomeByTopDrivers >= 0.8 * totalIncome
 }
